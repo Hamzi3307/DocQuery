@@ -16,3 +16,5 @@ When you ask a question, the app compares it with the text chunks and identifies
 
 ## Response Generation: 
 The selected chunks are passed to the language model, which generates a response based on the relevant content of the PDFs.
+
+![image](https://github.com/user-attachments/assets/e4b3ca12-b612-4bfa-a585-b6b9496c4186)
