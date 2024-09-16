@@ -1,0 +1,45 @@
+name: Deploy Streamlit to AWS Fargate
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: "us-east-1" # Change to your AWS region
+      ECR_REPOSITORY_URL: ${{ secrets.ECR_REPOSITORY_URL }}
+      ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+      ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }}
+      IMAGE_TAG: ${{ github.sha }} # Unique tag for the image
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY_URL
+
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REPOSITORY_URL:latest -t $ECR_REPOSITORY_URL:$IMAGE_TAG .
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push $ECR_REPOSITORY_URL:latest
+          docker push $ECR_REPOSITORY_URL:$IMAGE_TAG
+
+      - name: Deploy to AWS ECS
+        run: |
+          aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment
